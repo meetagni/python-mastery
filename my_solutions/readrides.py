@@ -21,7 +21,7 @@ def read_rides_as_tuples(filename):
 #A dictionary
 def read_rides_as_dictionary(filename):
     '''
-    read the bus ride data as a list of dictionary
+    read the bus ride data as a list of dictionaries
     '''
     records=[]
     with open(filename) as f:
@@ -67,12 +67,17 @@ def read_rides_as_class(filename):
     return records
 
 #Named tuple
-#def read_rides_as_namedtuple(filename):
+import typing
+class Rides_namedtuple(typing.NamedTuple):
+    route : str
+    date : str
+    daytype : str
+    rides : int
+def read_rides_as_namedtuple(filename):
     '''
     read the bus ride data as a list of namedtuples
     '''
-    from collections import namedtuple
-    records=[]
+    records= []
     with open(filename) as f:
         rows=csv.reader(f)
         headings=next(rows)
@@ -81,8 +86,8 @@ def read_rides_as_class(filename):
             date=row[1]
             daytype=row[2]
             rides=int(row[3])
-            Row = namedtuple('Row', ['route', 'date', 'daytype', 'rides'])
-            records.append(Row)
+            record= Rides_namedtuple(route, date, daytype, rides)
+            records.append(record)
     return records
 
 #A class with slots
@@ -111,8 +116,27 @@ def read_rides_as_class_with_slots(filename):
             records.append(record)
     return records
 
-if __name__=='__main__':
-    import tracemalloc
-    tracemalloc.start()
-    rows=read_rides_as_class_with_slots('../Data/ctabus.csv')
-    print('Memory Use: %d, Peak %d' % tracemalloc.get_traced_memory())
+#Dataclass
+from dataclasses import dataclass
+@dataclass
+class Row_dataclass:
+    route : str
+    date : str
+    daytype : str
+    rides : int
+def read_rides_as_dataclass(filename):
+    '''
+    read the bus ride data as dataclass
+    '''
+    records= []
+    with open(filename) as f:
+        rows=csv.reader(f)
+        headings=next(rows)
+        for row in rows:
+            route=row[0]
+            date=row[1]
+            daytype=row[2]
+            rides=int(row[3])
+            record= Row_dataclass(route, date, daytype, rides)
+            records.append(record)
+    return records

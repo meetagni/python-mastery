@@ -11,4 +11,4 @@ def portfolio_cost(filename):
     return sum
 
 if __name__=='__main__':
-    print(portfolio_cost('../Data/portfolio2.dat'))
+    print(portfolio_cost('Data/portfolio2.dat'))
