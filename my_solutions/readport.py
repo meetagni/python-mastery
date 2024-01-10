@@ -16,6 +16,6 @@ def read_portfolio(filename):
             portfolio.append(record)
     return portfolio
 
-portfolio= read_portfolio('Data/portfolio.csv')
-from pprint import pprint
-pprint(portfolio)
+# portfolio= read_portfolio('Data/portfolio.csv')
+# from pprint import pprint
+# pprint(portfolio)
