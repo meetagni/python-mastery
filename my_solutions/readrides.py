@@ -1,4 +1,5 @@
 import csv
+import collections
 
 #A list of tuples
 def read_rides_as_tuples(filename):
@@ -23,7 +24,7 @@ def read_rides_as_dictionary(filename):
     '''
     read the bus ride data as a list of dictionaries
     '''
-    records=[]
+    records= RideData()
     with open(filename) as f:
         rows=csv.reader(f)
         headings=next(rows)
@@ -140,3 +141,53 @@ def read_rides_as_dataclass(filename):
             record= Row_dataclass(route, date, daytype, rides)
             records.append(record)
     return records
+
+#As columns
+def read_rides_as_columns(filename):
+    '''
+    read the bus ride data as into 4 lists, representing columns
+    '''
+    routes=[]
+    dates=[]
+    daytypes=[]
+    numrides=[]
+    with open(filename) as f:
+        rows= csv.reader(f)
+        headings= next(f)
+        for row in rows:
+            routes.append(row[0])
+            dates.append(row[1])
+            daytypes.append(row[2])
+            numrides.append(int(row[3]))
+    return dict(routes=routes, dates=dates, daytypes=daytypes, numrides=numrides)
+
+class RideData(collections.abc.Sequence):
+    def __init__(self):
+        self.routes=[]
+        self.dates=[]
+        self.daytypes=[]
+        self.numrides=[]
+    def __len__(self):
+        return len(self.routes) #assuming all lists have the same length
+    def __getitem__(self, index):
+        return {
+            'route': self.routes[index],
+            'date': self.dates[index],
+            'daytype': self.daytypes[index],
+            'rides': self.numrides[index]
+        }    
+    def append(self, d):
+        self.routes.append(d['route'])
+        self.dates.append(d['date'])
+        self.daytypes.append(d['daytype'])
+        self.numrides.append(d['rides'])
+        
+        
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            start, stop, step = index.indices(len(self.routes))
+            return [dict(routes= self.routes[i], dates= self.dates[i], daytypes= self.daytypes[i], numrides= self.numrides[i]) for i in range(start, stop, step)]
+        elif isinstance(index, int):
+            return dict(routes= self.routes[index], dates= self.dates[index], daytypes= self.daytypes[index], numrides= self.numrides[index])
+        else:
+            raise TypeError("Invalid argument type.")
