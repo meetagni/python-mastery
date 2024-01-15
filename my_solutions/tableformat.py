@@ -3,15 +3,19 @@ def print_table(records, fields, formatter):
 #     print(('-'*10 + ' ')*len(fields))
 #     for record in records:
 #         print(' '.join('%10s' % getattr(record, fieldname) for fieldname in fields))
+    if not isinstance(formatter, TableFormatter):
+        raise TypeError("Expected a TableFormatter")
     formatter.headings(fields)
     for r in records:
         rowdata= [getattr(r, fieldname) for fieldname in fields]
         formatter.row(rowdata)      
         
-class TableFormatter:       #An Abstract Base Class (ABC)
+from abc import ABC, abstractmethod
+class TableFormatter(ABC):       #An Abstract Base Class (ABC)
+    @abstractmethod
     def headings(self, headers):
         raise NotImplementedError()
-
+    @abstractmethod
     def row(self, rowdata):
         raise NotImplementedError()
 
@@ -41,15 +45,23 @@ class HTMLTableFormatter(TableFormatter):
             print('<td>%s</td>' % d, end=' ')
         print('</tr>')
 
-def create_formatter(fmt):
+def create_formatter(fmt, column_formats=None, upper_headers=False):
     if fmt == 'text':
-        return TextTableFormatter()
+        formatter_cls= TextTableFormatter
     elif fmt == 'csv':
-        return CSVTableFormatter()
+        formatter_cls= CSVTableFormatter
     elif fmt == 'html':
-        return HTMLTableFormatter()
+        formatter_cls= HTMLTableFormatter
     else:
-        raise NotImplementedError
+        raise RuntimeError("Unknown format %s" % fmt)
+    
+    if column_formats:
+        class formatter_cls(ColumnFormatMixin, formatter_cls):
+            formats= column_formats
+    if upper_headers:
+        class formatter_cls(UpperHeadersMixin, formatter_cls):
+            pass
+    return formatter_cls()
 
 import sys
 class redirect_stdout:
@@ -61,3 +73,13 @@ class redirect_stdout:
         return self.out_file
     def __exit__(self, ty, val, tb):
         sys.stdout = self.stdout
+
+class ColumnFormatMixin:
+    formats= []
+    def row(self, rowdata):
+        rowdata= [(fmt %d) for fmt, d in zip(self.formats, rowdata)]
+        super().row(rowdata)
+
+class UpperHeadersMixin:
+    def headings(self, headers):
+        super().headings([h.upper() for h in headers])
