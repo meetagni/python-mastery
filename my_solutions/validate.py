@@ -1,3 +1,4 @@
+import decimal
 from inspect import signature
 
 class Validator:
@@ -13,6 +14,12 @@ class Validator:
     
     def __set__(self, instance, value):
         instance.__dict__[self.name]= self.check(value)
+    
+    #Collect all derived classes into a dict
+    validators={}
+    @classmethod
+    def __init_subclass__(cls):
+        cls.validators[cls.__name__]= cls
 
 class Typed(Validator):
     expected_type= object
@@ -22,12 +29,24 @@ class Typed(Validator):
             raise TypeError(f'Expected {cls.expected_type}')
         return super().check(value)
 
-class Integer(Typed):
-    expected_type= int
-class Float(Typed):
-    expected_type= float
-class String(Typed):
-    expected_type= str
+# class Integer(Typed):
+#     expected_type= int
+# class Float(Typed):
+#     expected_type= float
+# class String(Typed):
+#     expected_type= str
+
+_typed_classes = [
+    ('Integer', int),
+    ('Float', float),
+    ('Complex', complex),
+    ('Decimal', decimal.Decimal),
+    ('List', list),
+    ('Bool', bool),
+    ('String', str) ]
+
+globals().update((name, type(name, (Typed,), {'expected_type':ty}))
+                 for name, ty in _typed_classes)
 
 class Positive(Validator):
     @classmethod
@@ -101,3 +120,65 @@ class ValidatedFunction:
             self.retcheck.check(result)
             
         return result
+
+from functools import wraps
+def validated(func):
+    
+    sig= signature(func)
+    ann= dict(func.__annotations__)
+    retcheck= ann.pop('return', None)
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        bound= sig.bind(*args, **kwargs)
+        errors= []
+        
+        for name, validator in ann.items():
+            try:
+                validator.check(bound.arguments[name])
+            except Exception as e:
+                errors.append(f'    {name}: {e}')
+        
+        if errors:
+            raise TypeError('Bad Arguments\n' + '\n'.join(errors))
+        
+        result= func(*args, **kwargs)
+        
+        if retcheck:
+            try:
+                retcheck.check(result)
+            except Exception as e:
+                raise TypeError(f'Bad return: {e}') from None
+        return result
+    return wrapper
+
+def enforce(**annotations):
+    retcheck= annotations.pop('return_', None)
+    
+    def decorate(func):
+        
+        sig= signature(func)
+        
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            bound= sig.bind(*args, **kwargs)
+            errors= []
+            
+            for name, validator in annotations.items():
+                try:
+                    validator.check(bound.arguments[name])
+                except Exception as e:
+                    errors.append(f'    {name}: {e}')
+            
+            if errors:
+                raise TypeError('Bad Arguments\n' + '\n'.join(errors))
+            
+            result= func(*args, **kwargs)
+            
+            if retcheck:
+                try:
+                    retcheck.check(result)
+                except Exception as e:
+                    raise TypeError(f'Bad return: {e}') from None
+            return result
+        return wrapper
+    return decorate

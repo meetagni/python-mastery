@@ -1,7 +1,19 @@
-import sys
-import inspect
-class Structure:
+from validate import Validator, validated
+from collections import ChainMap
+
+class StructureMeta(type):
+    @classmethod
+    def __prepare__(meta, clsname, bases):
+        return ChainMap({}, Validator.validators)
+    
+    @staticmethod
+    def __new__(meta, name, bases, methods):
+        methods= methods.maps[0]
+        return super().__new__(meta, name, bases, methods)
+
+class Structure(metaclass=StructureMeta):
     _fields= ()
+    _types= ()
     # def __init__(self, *args):
     #     if len(args) != len(self._fields):
     #         raise TypeError(f'Expected {len(self._fields)} arguments')
@@ -37,3 +49,32 @@ class Structure:
         locs = { }
         exec(code, locs)
         cls.__init__ = locs['__init__']
+    
+    @classmethod
+    def __init_subclass__(cls):
+        validate_attributes(cls)
+    
+    @classmethod
+    def from_row(cls, row):
+        rowdata= [func(val) for func, val in zip(cls._types, row)]
+        return cls(*rowdata)
+
+def validate_attributes(cls):
+    validators=[]
+    for name, val in vars(cls).items():
+        if isinstance(val, Validator):
+            validators.append(val)
+        
+        elif callable(val) and val.__annotations__:
+            setattr(cls, name, validated(val))
+        
+    cls._fields= tuple([val.name for val in validators])
+    cls._types= tuple([getattr(v, 'expected_type', lambda x: x) for v in validators])
+    if cls._fields:    
+        cls.create_init()
+    
+    return cls
+
+def typed_structure(clsname, **validators):
+    cls= type(clsname, (Structure,), validators)
+    return cls
