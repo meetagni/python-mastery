@@ -58,6 +58,13 @@ class Structure(metaclass=StructureMeta):
     def from_row(cls, row):
         rowdata= [func(val) for func, val in zip(cls._types, row)]
         return cls(*rowdata)
+    
+    def __iter__(self):
+        for name in self._fields:
+            yield getattr(self, name)
+    
+    def __eq__(self,other):
+        return isinstance(other, type(self)) and tuple(self) == tuple(other)
 
 def validate_attributes(cls):
     validators=[]
