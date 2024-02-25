@@ -1,5 +1,5 @@
-from structure import Structure
-from validate import String, PositiveFloat, PositiveInteger
+from structly import *
+#from validate import String, PositiveFloat, PositiveInteger
 
 # @validate_attributes
 class Stock(Structure):
@@ -20,3 +20,10 @@ class Stock(Structure):
 
 # Stock.set_fields()
 # Stock.create_init()
+
+if __name__ == '__main__':
+    # from structly import read_csv_as_instances
+    # from structly import create_formatter, print_table
+    portfolio = read_csv_as_instances('Data/portfolio.csv', Stock)
+    formatter = create_formatter('text')
+    print_table(portfolio, ['name','shares','price'], formatter)

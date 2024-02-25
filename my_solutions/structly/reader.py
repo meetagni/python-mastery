@@ -1,6 +1,9 @@
 import csv
 import logging
 log= logging.getLogger(__name__)
+
+__all__=['read_csv_as_dicts', 'read_csv_as_instances']
+
 # def read_csv_as_dicts(filename, coltypes):
 #     '''
 #     Read CSV data into a list of dictionaries with optional type conversion
